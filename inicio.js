@@ -18,6 +18,16 @@ function debounceRefresh(key, fn, delay = 350) {
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', async () => {
+    // Si se detecta un reload de la página, forzar volver al login por seguridad
+    try {
+        const navEntry = performance.getEntriesByType('navigation')[0];
+        const isReload = navEntry ? navEntry.type === 'reload' : (performance.navigation && performance.navigation.type === 1);
+        if (isReload) {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+            return;
+        }
+    } catch {}
     // Verificar sesión
     const { data: { session } } = await supabase.auth.getSession();
     
