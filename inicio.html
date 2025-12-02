@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Equipos</title>
+    <link rel="stylesheet" href="inicio.css">
+    <meta name="theme-color" content="#181b20">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+</head>
+<body>
+    <div class="header">
+        <h1 class="titulo-responsive">SALÓN DE ASAMBLEAS <span class="break-mobile">GUAYAQUIL ECUADOR</span></h1>
+        <h2>GESTIÓN DE EQUIPOS</h2>
+        <div class="user-profile-container">
+            <button id="profileBtn" class="profile-btn conn-unknown" onclick="toggleProfileMenu()" title="Comprobando conexión...">
+                <img id="profileAvatar" class="profile-avatar" src="" alt="" style="display:none;">
+                <div id="profileAvatarFallback" class="profile-avatar-fallback">👤</div>
+            </button>
+            <div id="profileDropdown" class="profile-dropdown" style="display:none;">
+                <div class="profile-dropdown-header">
+                    <div class="profile-info">
+                        <div class="profile-name" id="profileName"></div>
+                        <div class="profile-email" id="profileEmail"></div>
+                    </div>
+                </div>
+                <div class="profile-dropdown-divider"></div>
+                <button class="profile-dropdown-item" onclick="showView('ayuda'); toggleProfileMenu();">
+                    <span class="profile-item-icon">❓</span>
+                    <span>Ayuda</span>
+                </button>
+                <div class="profile-dropdown-divider"></div>
+                <button class="profile-dropdown-item" onclick="cambiarCuenta()">
+                    <span class="profile-item-icon">🔄</span>
+                    <span>Cambiar Cuenta</span>
+                </button>
+                <button class="profile-dropdown-item logout" onclick="cerrarSesion()">
+                    <span class="profile-item-icon">🚪</span>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MENÚ PRINCIPAL -->
+    <div id="menuPrincipal" class="view active">
+        <div class="menu-container">
+            <h3>Menú Principal</h3>
+            <div class="menu-grid">
+                <button onclick="showView('salon')" class="menu-btn">
+                    <div class="menu-icon">🏢</div>
+                    <div class="menu-label">Salón</div>
+                </button>
+                <button onclick="showView('usuarios')" class="menu-btn">
+                    <div class="menu-icon">👥</div>
+                    <div class="menu-label">Usuarios</div>
+                </button>
+                <button onclick="showView('nuevaHerramienta')" class="menu-btn">
+                    <div class="menu-icon">🔧</div>
+                    <div class="menu-label">Nueva Herramienta</div>
+                </button>
+                <button onclick="showView('reportes')" class="menu-btn">
+                    <div class="menu-icon">📊</div>
+                    <div class="menu-label">Reportes</div>
+                </button>
+                <button onclick="showView('historial')" class="menu-btn">
+                    <div class="menu-icon">📜</div>
+                    <div class="menu-label">Historial</div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA SALÓN -->
+    <div id="salon" class="view">
+        <div class="view-header">
+            <button onclick="showView('menuPrincipal')" class="btn-back">← Volver</button>
+            <h3>Gestión del Salón</h3>
+            <button onclick="refrescarSalon()" class="btn-refresh">🔄 Refrescar</button>
+        </div>
+        
+        <div class="salon-container">
+            <!-- Panel izquierdo: Registro y búsqueda de usuarios -->
+            <div class="salon-panel">
+                <div class="panel-section">
+                    <h4>Registrar Usuario del Salón</h4>
+                    <div class="form-group">
+                        <label>Nombre:</label>
+                        <input type="text" id="salonNombre" placeholder="Nombre del usuario">
+                    </div>
+                    <div class="form-group">
+                        <label>Equipo:</label>
+                        <input type="text" id="salonEquipo" placeholder="Número de equipo">
+                    </div>
+                    <button onclick="registrarUsuarioSalon()" class="btn-primary">Registrar</button>
+                </div>
+
+                <div class="panel-section">
+                    <h4>Buscar Usuarios del Salón</h4>
+                    <input type="text" id="buscarUsuarioSalon" placeholder="Buscar por nombre..." oninput="buscarUsuariosSalon()">
+                    <div id="listaUsuariosSalon" class="lista-items"></div>
+                </div>
+
+                <div class="panel-section">
+                    <h4>Herramientas del Usuario Seleccionado <span id="contadorHerramientasUsuario" class="badge-counter">—</span></h4>
+                    <div id="nombreUsuarioSeleccionado" class="info-text">Ningún usuario seleccionado</div>
+                    <div id="herramientasUsuario" class="lista-herramientas"></div>
+                </div>
+            </div>
+
+            <!-- Panel derecho: Herramientas disponibles -->
+            <div class="salon-panel">
+                <div class="panel-section">
+                    <h4>Todas las Herramientas</h4>
+                    <div class="form-group">
+                        <label>Buscar herramienta:</label>
+                        <input type="text" id="buscarHerramientaSalon" placeholder="Buscar por nombre..." oninput="filtrarHerramientas()">
+                    </div>
+                    <div class="filter-group">
+                        <label><input type="radio" name="filtroHerramientas" value="todas" checked onchange="filtrarHerramientas()"> Todas</label>
+                        <label><input type="radio" name="filtroHerramientas" value="libres" onchange="filtrarHerramientas()"> Libres</label>
+                        <label><input type="radio" name="filtroHerramientas" value="enUso" onchange="filtrarHerramientas()"> En Uso</label>
+                    </div>
+                    <div id="listaHerramientas" class="lista-items"></div>
+                </div>
+
+                        <div class="panel-section">
+                            <h4>Herramientas Dañadas</h4>
+                            <div class="form-group">
+                                <label for="buscarHerramientaDanada">Buscar</label>
+                                <input type="text" id="buscarHerramientaDanada" placeholder="Escribe para filtrar..." oninput="filtrarHerramientasDanadas()" />
+                            </div>
+                            <div id="listaHerramientasDanadas" class="lista-items lista-danadas"></div>
+                        </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA USUARIOS -->
+    <div id="usuarios" class="view">
+        <div class="view-header">
+            <button onclick="showView('menuPrincipal')" class="btn-back">← Volver</button>
+            <h3>Gestión de Usuarios</h3>
+        </div>
+        
+        <div class="usuarios-container">
+            <div class="panel-section">
+                <h4>Buscar Usuarios</h4>
+                <input type="text" id="buscarUsuario" placeholder="Buscar por nombre..." oninput="buscarUsuarios()">
+                <div id="listaUsuarios" class="lista-items"></div>
+            </div>
+
+            <div class="panel-section">
+                <h4 id="usuarioFormTitle">Crear Nuevo Usuario</h4>
+                <div class="form-group">
+                    <label>Nombre:</label>
+                    <input type="text" id="usuarioNombre" placeholder="Nombre del usuario">
+                </div>
+                <div class="form-group">
+                    <label>Equipo:</label>
+                    <input type="text" id="usuarioEquipo" placeholder="Número de equipo">
+                </div>
+                <div class="form-actions">
+                    <button onclick="guardarUsuario()" class="btn-primary">Guardar</button>
+                    <button onclick="cancelarEdicionUsuario()" class="btn-secondary" id="btnCancelarUsuario" style="display:none">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA NUEVA HERRAMIENTA -->
+    <div id="nuevaHerramienta" class="view">
+        <div class="view-header">
+            <button onclick="showView('menuPrincipal')" class="btn-back">← Volver</button>
+            <h3>Nueva Herramienta</h3>
+        </div>
+        
+        <div class="herramienta-container">
+            <div class="panel-section">
+                <h4>Crear Herramienta Manualmente</h4>
+                <div class="form-group">
+                    <label>Nombre de la Herramienta:</label>
+                    <input type="text" id="herramientaNombre" placeholder="Ej: Micrófono inalámbrico">
+                </div>
+                <button onclick="crearHerramienta()" class="btn-primary">Crear Herramienta</button>
+            </div>
+
+            <div class="panel-section">
+                <h4>Importar desde CSV</h4>
+                <p class="info-text">Formatos aceptados:</p>
+                <ul class="info-list">
+                    <li>Con cabecera: id, nombre, enUso</li>
+                    <li>Sin cabecera: nombre[,enUso]</li>
+                    <li>Valores aceptados para enUso: true, 1, si, sí, en uso, usada, ocupada</li>
+                </ul>
+                <input type="file" id="csvFile" accept=".csv" onchange="previewCSV()">
+                <div id="csvPreview" class="csv-preview"></div>
+                <button onclick="importarCSV()" class="btn-primary" id="btnImportarCSV" disabled>Importar CSV</button>
+            </div>
+
+            <div class="panel-section">
+                <h4>Listado de Herramientas</h4>
+                <div class="form-group">
+                    <label for="buscarHerramientaNueva">Buscar Herramienta:</label>
+                    <input type="text" id="buscarHerramientaNueva" placeholder="Buscar por nombre..." oninput="buscarHerramientasNueva()">
+                </div>
+                <div id="listaHerramientasNueva" class="lista-items"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA REPORTES -->
+    <div id="reportes" class="view">
+        <div class="view-header">
+            <button onclick="showView('menuPrincipal')" class="btn-back">← Volver</button>
+            <h3>Reportes</h3>
+        </div>
+        
+        <div class="reportes-container">
+            <div class="panel-section">
+                <h4>Exportar Movimientos</h4>
+                <p class="info-text">Exporta todos los movimientos registrados en el sistema a un archivo CSV.</p>
+                <p class="info-text">Campos incluidos: tipo, usuarioSalonId, herramientaId, usuarioSistema, fecha</p>
+                <button onclick="exportarMovimientos()" class="btn-primary">📥 Exportar a CSV</button>
+            </div>
+
+            <div class="panel-section">
+                <h4>Estadísticas</h4>
+                <div id="estadisticas" class="estadisticas-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA HISTORIAL -->
+    <div id="historial" class="view">
+        <div class="view-header">
+            <button onclick="showView('menuPrincipal')" class="btn-back">← Volver</button>
+            <h3>Historial</h3>
+        </div>
+        
+        <div class="historial-container">
+            <div class="panel-section">
+                <h4>Filtros de Búsqueda</h4>
+                <div class="form-group">
+                    <label>Buscar Usuario:</label>
+                    <input type="text" id="buscarHistorialUsuario" placeholder="Buscar por nombre..." oninput="buscarHistorialUsuarios()">
+                    <div id="listaHistorialUsuarios" class="lista-items"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Buscar Herramienta:</label>
+                    <input type="text" id="buscarHistorialHerramienta" placeholder="Buscar por nombre..." oninput="buscarHistorialHerramientas()">
+                    <div id="listaHistorialHerramientas" class="lista-items"></div>
+                </div>
+
+                <button onclick="buscarHistorial()" class="btn-primary">Buscar</button>
+                <button onclick="limpiarFiltrosHistorial()" class="btn-secondary">Limpiar Filtros</button>
+            </div>
+
+            <div class="panel-section">
+                <h4>Resultados</h4>
+                <div id="resultadosHistorial" class="historial-resultados"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA AYUDA -->
+    <div id="ayuda" class="view">
+        <div class="view-header">
+            <button onclick="showView('menuPrincipal')" class="btn-back">← Volver</button>
+            <h3>Ayuda</h3>
+        </div>
+        
+        <div class="ayuda-container">
+            <div class="panel-section">
+                <h4>📖 Guía de Uso</h4>
+                
+                <div class="ayuda-item">
+                    <h5>🏢 Salón (Gestión Principal)</h5>
+                    <ul>
+                        <li><strong>Registrar usuario:</strong> Ingresa nombre y equipo. El ID se crea automáticamente en minúsculas.</li>
+                        <li><strong>Buscar usuarios:</strong> Escribe en el campo de búsqueda y haz doble clic para seleccionar.</li>
+                        <li><strong>Ver herramientas del usuario:</strong> Selecciona un usuario para ver sus herramientas asignadas.</li>
+                        <li><strong>Asignar herramienta:</strong> Haz doble clic en una herramienta libre.</li>
+                        <li><strong>Devolver herramienta:</strong> Selecciona una herramienta del usuario y usa el botón "Entregar" que aparece.</li>
+                        <li><strong>Marcar como dañada:</strong> Arrastra una herramienta desde el usuario a la lista de dañadas.</li>
+                        <li><strong>Eliminar usuario:</strong> Solo se puede eliminar si no tiene herramientas asignadas.</li>
+                    </ul>
+                </div>
+
+                <div class="ayuda-item">
+                    <h5>🔧 Nueva Herramienta</h5>
+                    <ul>
+                        <li><strong>Manual:</strong> Ingresa el nombre de la herramienta. El ID se crea en minúsculas.</li>
+                        <li><strong>Importar CSV:</strong> Acepta archivos con o sin cabecera.</li>
+                        <li><strong>Formatos CSV:</strong> Con cabecera (id, nombre, enUso) o sin cabecera (nombre[,enUso]).</li>
+                        <li><strong>Valores enUso:</strong> true, 1, si, sí, en uso, usada, ocupada.</li>
+                    </ul>
+                </div>
+
+                <div class="ayuda-item">
+                    <h5>👥 Usuarios</h5>
+                    <ul>
+                        <li><strong>Buscar:</strong> Filtra usuarios por nombre.</li>
+                        <li><strong>Crear/Editar:</strong> Haz doble clic en un usuario para editarlo.</li>
+                        <li><strong>Guardar:</strong> El ID se genera automáticamente en minúsculas.</li>
+                    </ul>
+                </div>
+
+                <div class="ayuda-item">
+                    <h5>📊 Reportes</h5>
+                    <ul>
+                        <li><strong>Exportar:</strong> Descarga todos los movimientos en formato CSV.</li>
+                        <li><strong>Campos:</strong> tipo, usuarioSalonId, herramientaId, usuarioSistema, fecha.</li>
+                    </ul>
+                </div>
+
+                <div class="ayuda-item">
+                    <h5>📜 Historial</h5>
+                    <ul>
+                        <li><strong>Buscar usuario:</strong> Escribe y haz doble clic para seleccionar.</li>
+                        <li><strong>Buscar herramienta:</strong> Escribe y haz doble clic para seleccionar.</li>
+                        <li><strong>Aplicar filtros:</strong> Presiona "Buscar" para ver los resultados.</li>
+                    </ul>
+                </div>
+
+                <div class="ayuda-item">
+                    <h5>⚠️ Notas Importantes</h5>
+                    <ul>
+                        <li>Todos los IDs se generan en minúsculas automáticamente.</li>
+                        <li>Una herramienta "En uso" no se puede asignar a otro usuario.</li>
+                        <li>No se puede eliminar un usuario que tenga herramientas asignadas.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación personalizado -->
+    <div id="confirmModal" class="confirm-modal" style="display:none">
+        <div class="confirm-modal-content">
+            <div class="confirm-modal-header">Confirmar acción</div>
+            <div class="confirm-modal-body" id="confirmMessage"></div>
+            <div class="confirm-modal-actions">
+                <button id="confirmCancel" class="btn-secondary">Cancelar</button>
+                <button id="confirmOk" class="btn-primary">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        © 2025 Gestión de equipos
+    </footer>
+
+<!-- Overlay de carga -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none" aria-hidden="true">
+    <div class="loading-backdrop"></div>
+    <div class="loading-spinner" role="status" aria-live="polite" aria-label="Cargando">
+        <div class="spinner-ring"></div>
+        <div class="spinner-text">Cargando…</div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script src="config.js?v=20251201"></script>
+<script src="inicio.js?v=20251201"></script>
+</body>
+</html>
