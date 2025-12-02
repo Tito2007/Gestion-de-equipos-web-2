@@ -9,6 +9,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
+    <!-- Favicon / Iconos -->
+    <link rel="icon" type="image/png" sizes="32x32" href="logo.png">
+    <link rel="icon" type="image/x-icon" href="logo.ico">
+    <link rel="apple-touch-icon" href="logo.png">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
@@ -36,6 +40,30 @@
                     <span>Notificaciones</span>
                 </button>
                 <div class="profile-dropdown-divider"></div>
+                <!-- Atajos Admin -->
+                <div id="adminShortcuts" class="profile-admin-group" style="display:none;">
+                    <div class="profile-dropdown-subtitle">Admin</div>
+                    <button class="profile-dropdown-item" onclick="document.getElementById('csvFile')?.click(); toggleProfileMenu();">
+                        <span class="profile-item-icon">📥</span>
+                        <span>Importar CSV</span>
+                    </button>
+                    <button class="profile-dropdown-item" onclick="exportarCSV(); toggleProfileMenu();">
+                        <span class="profile-item-icon">📤</span>
+                        <span>Exportar CSV</span>
+                    </button>
+                    <button class="profile-dropdown-item" onclick="accionReconciliarEstados(); toggleProfileMenu();">
+                        <span class="profile-item-icon">🧩</span>
+                        <span>Reconciliar estados</span>
+                    </button>
+                    <button class="profile-dropdown-item" onclick="accionDepurarHerramientas(); toggleProfileMenu();">
+                        <span class="profile-item-icon">🧹</span>
+                        <span>Depurar herramientas</span>
+                    </button>
+                    <button class="profile-dropdown-item" onclick="showView('usuarios'); toggleProfileMenu();">
+                        <span class="profile-item-icon">👥</span>
+                        <span>Gestión de usuarios</span>
+                    </button>
+                </div>
                 <button class="profile-dropdown-item" onclick="showView('ayuda'); toggleProfileMenu();">
                     <span class="profile-item-icon">❓</span>
                     <span>Ayuda</span>
