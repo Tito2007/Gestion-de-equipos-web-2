@@ -87,6 +87,17 @@ console.log('Sesión activa, cargando usuario...');
     mostrarNotificacionesSiPendientes();
 });
 
+// Cerrar sesión cuando la pestaña se oculta o se cierra (fallback de seguridad)
+document.addEventListener('visibilitychange', async () => {
+    try {
+        if (document.visibilityState === 'hidden') {
+            await supabase.auth.signOut();
+        }
+    } catch (e) {
+        console.warn('No se pudo cerrar sesión al ocultar pestaña:', e?.message || e);
+    }
+});
+
 // ===== OVERLAY DE CARGA =====
 function showLoading() {
     const overlay = document.getElementById('loadingOverlay');
