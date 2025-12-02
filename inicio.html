@@ -21,6 +21,7 @@
             <button id="profileBtn" class="profile-btn conn-unknown" onclick="toggleProfileMenu()" title="Comprobando conexión...">
                 <img id="profileAvatar" class="profile-avatar" src="" alt="" style="display:none;">
                 <div id="profileAvatarFallback" class="profile-avatar-fallback">👤</div>
+                <span id="notifBadge" class="notif-badge" style="display:none">0</span>
             </button>
             <div id="profileDropdown" class="profile-dropdown" style="display:none;">
                 <div class="profile-dropdown-header">
@@ -29,6 +30,11 @@
                         <div class="profile-email" id="profileEmail"></div>
                     </div>
                 </div>
+                <div class="profile-dropdown-divider"></div>
+                <button class="profile-dropdown-item" onclick="abrirNotificaciones(); toggleProfileMenu();">
+                    <span class="profile-item-icon">🔔</span>
+                    <span>Notificaciones</span>
+                </button>
                 <div class="profile-dropdown-divider"></div>
                 <button class="profile-dropdown-item" onclick="showView('ayuda'); toggleProfileMenu();">
                     <span class="profile-item-icon">❓</span>
@@ -75,6 +81,16 @@
             </div>
         </div>
     </div>
+    
+        <!-- Panel de Notificaciones + Fondo borroso -->
+        <div id="notificacionesBackdrop" class="notifications-backdrop" style="display:none;"></div>
+        <div id="panelNotificaciones" class="notifications-panel" style="display:none;">
+            <div class="notifications-header">
+                <h3>Notificaciones</h3>
+                <button class="btn-close" onclick="cerrarNotificaciones()">✕</button>
+            </div>
+            <div id="listaNotificaciones" class="notifications-list"></div>
+        </div>
 
     <!-- VISTA SALÓN -->
     <div id="salon" class="view">

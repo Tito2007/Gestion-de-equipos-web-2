@@ -72,6 +72,9 @@ console.log('Sesión activa, cargando usuario...');
     initRealtime();
     // Comprobar conectividad al iniciar
     setTimeout(checkSupabaseConnectivity, 200);
+    // Cargar notificaciones al inicio y mostrar si hay pendientes
+    await cargarNotificaciones();
+    mostrarNotificacionesSiPendientes();
 });
 
 // ===== OVERLAY DE CARGA =====
@@ -207,6 +210,74 @@ function showNotification(message, type = 'success') {
         notification.classList.add('slide-out');
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+}
+
+// Panel de notificaciones (pendientes de entrega)
+async function cargarNotificaciones() {
+    try {
+        const { data, error } = await supabase
+            .from('asignaciones')
+            .select('id, usuario_salon_id, herramienta_id, devuelta, fecha_asignacion, usuarios_salon(nombre, equipo), herramientas(nombre)')
+            .eq('devuelta', false)
+            .order('fecha_asignacion', { ascending: false });
+        if (error) throw error;
+        const cont = document.getElementById('listaNotificaciones');
+        const badge = document.getElementById('notifBadge');
+        if (!cont) return;
+        cont.innerHTML = '';
+        if (!data || data.length === 0) {
+            cont.innerHTML = '<div class="info-text">No hay pendientes</div>';
+            if (badge) {
+                badge.style.display = 'none';
+                badge.textContent = '0';
+            }
+            return;
+        }
+        if (badge) {
+            badge.textContent = String(data.length);
+            badge.style.display = 'inline-flex';
+        }
+        data.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'notification-item';
+            const u = item.usuarios_salon;
+            const h = item.herramientas;
+            const fecha = new Date(item.fecha_asignacion);
+            const difMin = Math.round((Date.now() - fecha.getTime()) / 60000);
+            const tiempo = difMin < 60 ? `${difMin} min` : `${Math.round(difMin/60)} h`;
+            el.innerHTML = `
+                <div class="notification-title">${u?.nombre || 'Usuario'} no ha entregado: ${h?.nombre || 'Herramienta'}</div>
+                <div class="notification-sub">Equipo: ${u?.equipo || '—'} • Asignada hace ${tiempo}</div>
+            `;
+            cont.appendChild(el);
+        });
+    } catch (e) {
+        console.warn('Error cargando notificaciones:', e);
+    }
+}
+
+function abrirNotificaciones() {
+    const panel = document.getElementById('panelNotificaciones');
+    const backdrop = document.getElementById('notificacionesBackdrop');
+    if (panel) panel.style.display = 'block';
+    if (backdrop) backdrop.style.display = 'block';
+    cargarNotificaciones();
+}
+
+function cerrarNotificaciones() {
+    const panel = document.getElementById('panelNotificaciones');
+    const backdrop = document.getElementById('notificacionesBackdrop');
+    if (panel) panel.style.display = 'none';
+    if (backdrop) backdrop.style.display = 'none';
+}
+
+function mostrarNotificacionesSiPendientes() {
+    const cont = document.getElementById('listaNotificaciones');
+    if (!cont) return;
+    // Abrir si hay elementos además del mensaje vacío
+    if (cont.children.length > 0 && !cont.textContent.includes('No hay pendientes')) {
+        abrirNotificaciones();
+    }
 }
 
 // ===== CONFIRMACIÓN PERSONALIZADA =====
