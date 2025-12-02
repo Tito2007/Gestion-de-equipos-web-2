@@ -75,6 +75,11 @@ console.log('Sesión activa, cargando usuario...');
         if (csvFileEl) csvFileEl.style.display = 'none';
         if (btnImportCSV) btnImportCSV.style.display = 'none';
         if (csvPreviewEl) csvPreviewEl.style.display = 'none';
+        const adminShortcuts = document.getElementById('adminShortcuts');
+        if (adminShortcuts) adminShortcuts.style.display = 'none';
+    } else {
+        const adminShortcuts = document.getElementById('adminShortcuts');
+        if (adminShortcuts) adminShortcuts.style.display = 'block';
     }
 
     // Cargar datos iniciales
@@ -102,6 +107,58 @@ document.addEventListener('visibilitychange', async () => {
 function showLoading() {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) overlay.style.display = 'block';
+}
+// ===== ADMIN: Exportar CSV =====
+async function exportarCSV() {
+    try {
+        const { data, error } = await supabase
+            .from('herramientas')
+            .select('*')
+            .order('nombre');
+        if (error) throw error;
+        const rows = data || [];
+        const headers = rows.length ? Object.keys(rows[0]) : [];
+        const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(','))).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'herramientas_export.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        showNotification('Exportación completada', 'success');
+    } catch (e) {
+        showNotification('Error exportando CSV: ' + e.message, 'error');
+    }
+}
+
+// ===== ADMIN: Reconciliar estados =====
+async function accionReconciliarEstados() {
+    try {
+        showLoading();
+        await reconciliarEstadoHerramientas();
+        await cargarListadoHerramientasNueva();
+        showNotification('Estados reconciliados', 'success');
+    } finally {
+        hideLoading();
+    }
+}
+
+// ===== ADMIN: Depurar herramientas =====
+async function accionDepurarHerramientas() {
+    try {
+        const confirmado = await showConfirm('¿Marcar todas las herramientas como libres y no dañadas?');
+        if (!confirmado) return;
+        const { error } = await supabase
+            .from('herramientas')
+            .update({ en_uso: false, danada: false });
+        if (error) throw error;
+        await cargarHerramientas();
+        await cargarListadoHerramientasNueva();
+        showNotification('Depuración completada', 'success');
+    } catch (e) {
+        showNotification('Error en depuración: ' + e.message, 'error');
+    }
 }
 
 function hideLoading() {
