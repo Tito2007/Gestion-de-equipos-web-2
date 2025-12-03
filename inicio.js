@@ -111,11 +111,31 @@ function showLoading() {
 // ===== ADMIN: Exportar CSV =====
 async function exportarCSV() {
     try {
-        const { data, error } = await supabase
-            .from('herramientas')
-            .select('*')
-            .order('nombre');
-        if (error) throw error;
+        // Cargar TODAS las herramientas sin límite
+        let allData = [];
+        let from = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+        
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('herramientas')
+                .select('*')
+                .order('nombre')
+                .range(from, from + pageSize - 1);
+            
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                allData = allData.concat(data);
+                from += pageSize;
+                hasMore = data.length === pageSize;
+            } else {
+                hasMore = false;
+            }
+        }
+        
+        const data = allData;
         const rows = data || [];
         const headers = rows.length ? Object.keys(rows[0]) : [];
         const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(','))).join('\n');
@@ -738,13 +758,34 @@ async function marcarComoDanada(herramientaId) {
 async function cargarHerramientas() {
     try {
         console.log('Cargando herramientas...');
-        const { data, error } = await supabase
-            .from('herramientas')
-            .select('*')
-            .eq('danada', false)
-            .order('nombre');
+        
+        // Cargar TODAS las herramientas sin límite
+        let allData = [];
+        let from = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+        
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('herramientas')
+                .select('*')
+                .eq('danada', false)
+                .order('nombre')
+                .range(from, from + pageSize - 1);
+            
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                allData = allData.concat(data);
+                from += pageSize;
+                hasMore = data.length === pageSize;
+            } else {
+                hasMore = false;
+            }
+        }
+        
+        const data = allData;
 console.log('Se envio a supabase...');
-        if (error) throw error;
 console.log('Correcto...');
         const lista = document.getElementById('listaHerramientas');
         lista.innerHTML = '';
@@ -778,7 +819,8 @@ async function cargarHerramientasDanadas() {
             .from('herramientas')
             .select('*')
             .eq('danada', true)
-            .order('nombre');
+            .order('nombre')
+            .limit(1500);
 
         if (error) throw error;
 
@@ -1359,7 +1401,8 @@ async function crearHerramienta() {
         return;
     }
 
-    const id = nombre.toLowerCase();
+    // Normalizar el ID: reemplazar espacios múltiples por uno solo, convertir a minúsculas
+    const id = nombre.toLowerCase().replace(/\s+/g, ' ').trim();
 
     try {
         // Verificar existencia previa (por id / nombre normalizado)
@@ -1374,16 +1417,25 @@ async function crearHerramienta() {
             return;
         }
 
-        const { error } = await supabase
+        const { data: insertData, error } = await supabase
             .from('herramientas')
-            .insert([{ id, nombre, en_uso: false, danada: false }]);
+            .insert([{ id, nombre, en_uso: false, danada: false }])
+            .select();
 
         if (error) throw error;
 
         showNotification('Herramienta creada correctamente', 'success');
         document.getElementById('herramientaNombre').value = '';
+        
+        // Recargar la lista después de insertar
         await cargarListadoHerramientasNueva();
+        
+        // Si estamos en la vista salón, también actualizar allí
+        if (document.getElementById('salon').classList.contains('active')) {
+            await cargarHerramientas();
+        }
     } catch (error) {
+        console.error('❌ Error al crear herramienta:', error);
         setConnStatus(false);
         showNotification('Error al crear herramienta: ' + error.message, 'error');
     }
@@ -1392,19 +1444,52 @@ async function crearHerramienta() {
 // Listado completo para vista Nueva Herramienta
 async function cargarListadoHerramientasNueva() {
     try {
-        const { data, error } = await supabase
-            .from('herramientas')
-            .select('*')
-            .order('nombre');
-        if (error) throw error;
+        // Cargar TODAS las herramientas sin límite usando paginación
+        let allData = [];
+        let from = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+        
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('herramientas')
+                .select('*')
+                .order('nombre')
+                .range(from, from + pageSize - 1);
+            
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                allData = allData.concat(data);
+                from += pageSize;
+                hasMore = data.length === pageSize;
+            } else {
+                hasMore = false;
+            }
+        }
+        
         const cont = document.getElementById('listaHerramientasNueva');
-        if (!cont) return;
+        if (!cont) {
+            console.warn('⚠️ No se encontró el contenedor listaHerramientasNueva');
+            return;
+        }
+        
         cont.innerHTML = '';
-        if (!data || data.length === 0) {
+        
+        if (!allData || allData.length === 0) {
             cont.innerHTML = '<div class="info-text">No hay herramientas registradas</div>';
             return;
         }
-        data.forEach(h => {
+        
+        // Mostrar contador total
+        const contadorInfo = document.createElement('div');
+        contadorInfo.className = 'info-text';
+        contadorInfo.style.fontWeight = 'bold';
+        contadorInfo.style.marginBottom = '10px';
+        contadorInfo.textContent = `Total: ${allData.length} herramientas`;
+        cont.appendChild(contadorInfo);
+        
+        allData.forEach(h => {
             const item = document.createElement('div');
             item.className = 'lista-item';
             const estado = h.danada ? 'Dañada' : (h.en_uso ? 'En uso' : 'Libre');
@@ -1414,19 +1499,23 @@ async function cargarListadoHerramientasNueva() {
             cont.appendChild(item);
         });
     } catch (e) {
+        console.error('❌ Error al cargar listado de herramientas:', e);
         setConnStatus(false);
-        console.error('Error al cargar listado de herramientas:', e);
     }
 }
 
 // Búsqueda en listado de nueva herramienta
 function buscarHerramientasNueva() {
     const qInput = document.getElementById('buscarHerramientaNueva');
-    const q = (qInput ? qInput.value : '').toLowerCase();
+    const q = (qInput ? qInput.value : '').toLowerCase().trim();
     const items = document.querySelectorAll('#listaHerramientasNueva .lista-item');
+    
+    let visibleCount = 0;
     items.forEach(item => {
         const texto = item.textContent.toLowerCase();
-        item.style.display = texto.includes(q) ? 'block' : 'none';
+        const visible = q === '' || texto.includes(q);
+        item.style.display = visible ? 'block' : 'none';
+        if (visible) visibleCount++;
     });
 }
 
@@ -1828,7 +1917,8 @@ async function reconciliarEstadoHerramientas() {
         // Obtener TODAS las herramientas (no solo las no dañadas)
         const { data: herramientas } = await supabase
             .from('herramientas')
-            .select('id, nombre, en_uso, danada');
+            .select('id, nombre, en_uso, danada')
+            .limit(1500);
 
         const { data: asignacionesActivas } = await supabase
             .from('asignaciones')
