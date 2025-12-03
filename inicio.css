@@ -493,8 +493,11 @@ profile-email {
 /* Contenedores */
 .salon-container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
     gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: start;
 }
 
 .usuarios-container, .herramienta-container, .reportes-container, .historial-container, .ayuda-container {
@@ -1285,6 +1288,9 @@ footer {
 
     .salon-container {
         grid-template-columns: 1fr;
+        max-width: 860px;
+        margin: 0 auto;
+        padding-inline: 0.5rem;
     }
 
     .menu-grid {
@@ -1318,6 +1324,23 @@ footer {
         left: 10px;
         min-width: unset;
         max-width: unset;
+    }
+}
+
+/* Centrado fino para tablets medianas (entre 700px y 1100px) */
+@media (min-width: 700px) and (max-width: 1100px) {
+    .view {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    .salon-container {
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
+        grid-column-gap: 2rem;
+    }
+    .salon-panel {
+        width: 100%;
     }
 }
 
