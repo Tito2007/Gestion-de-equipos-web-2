@@ -63,6 +63,16 @@
                         <span class="profile-item-icon">👥</span>
                         <span>Gestión de usuarios</span>
                     </button>
+                    <div class="profile-dropdown-divider"></div>
+                    <div class="profile-dropdown-subtitle">Reseteo de Usuarios</div>
+                    <button class="profile-dropdown-item" onclick="eliminarUsuariosSinHerramientas(); toggleProfileMenu();">
+                        <span class="profile-item-icon">🧼</span>
+                        <span>Eliminar usuarios libres</span>
+                    </button>
+                    <button class="profile-dropdown-item logout" onclick="eliminarTodosUsuarios(); toggleProfileMenu();">
+                        <span class="profile-item-icon">⚠️</span>
+                        <span>Eliminar TODOS los usuarios</span>
+                    </button>
                 </div>
                 <button class="profile-dropdown-item" onclick="showView('ayuda'); toggleProfileMenu();">
                     <span class="profile-item-icon">❓</span>

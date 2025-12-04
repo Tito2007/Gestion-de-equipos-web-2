@@ -11,6 +11,7 @@ let realtimeChannel = null;
 let realtimeInitialized = false;
 const refreshTimers = {};
 let isAdmin = false;
+let reseteoAutomaticoInterval = null;
 function debounceRefresh(key, fn, delay = 350) {
     clearTimeout(refreshTimers[key]);
     refreshTimers[key] = setTimeout(fn, delay);
@@ -90,6 +91,8 @@ console.log('Sesión activa, cargando usuario...');
     // Cargar notificaciones al inicio y mostrar si hay pendientes
     await cargarNotificaciones();
     mostrarNotificacionesSiPendientes();
+    // Iniciar reseteo automático diario a las 7pm hora Ecuador
+    iniciarReseteoAutomatico();
 });
 
 // Cerrar sesión cuando la pestaña se oculta o se cierra (fallback de seguridad)
@@ -1996,3 +1999,296 @@ async function checkSupabaseConnectivity() {
 
 window.addEventListener('online', () => { setConnStatus(); checkSupabaseConnectivity(); });
 window.addEventListener('offline', () => setConnStatus(false));
+
+// ===== RESETEO AUTOMÁTICO DIARIO =====
+/**
+ * Inicializa el sistema de reseteo automático diario a las 7pm hora Ecuador (UTC-5)
+ * Elimina usuarios del salón sin herramientas pendientes
+ */
+function iniciarReseteoAutomatico() {
+    console.log('🕐 Inicializando reseteo automático diario...');
+    
+    // Limpiar intervalo previo si existe
+    if (reseteoAutomaticoInterval) {
+        clearInterval(reseteoAutomaticoInterval);
+    }
+    
+    // Verificar cada minuto si es hora de resetear
+    reseteoAutomaticoInterval = setInterval(verificarHoraReseteo, 60000);
+    
+    // Verificar inmediatamente al cargar
+    verificarHoraReseteo();
+}
+
+/**
+ * Verifica si es 7pm hora Ecuador y ejecuta el reseteo si corresponde
+ */
+async function verificarHoraReseteo() {
+    try {
+        // Obtener hora actual en Ecuador (UTC-5)
+        const ahora = new Date();
+        const horaEcuador = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Guayaquil' }));
+        
+        const hora = horaEcuador.getHours();
+        const minutos = horaEcuador.getMinutes();
+        
+        // Ejecutar solo a las 7pm (19:00) en el minuto 0
+        if (hora === 19 && minutos === 0) {
+            console.log('🕐 Es hora de reseteo: 7pm Ecuador');
+            await ejecutarReseteoUsuarios();
+        }
+    } catch (e) {
+        console.error('❌ Error verificando hora de reseteo:', e);
+    }
+}
+
+/**
+ * Ejecuta el reseteo: elimina usuarios sin herramientas pendientes
+ */
+async function ejecutarReseteoUsuarios() {
+    try {
+        console.log('🔄 Iniciando reseteo automático de usuarios...');
+        
+        // 1. Obtener todos los usuarios del salón
+        const { data: todosUsuarios, error: errorUsuarios } = await supabase
+            .from('usuarios_salon')
+            .select('id, nombre');
+        
+        if (errorUsuarios) throw errorUsuarios;
+        
+        if (!todosUsuarios || todosUsuarios.length === 0) {
+            console.log('✅ No hay usuarios para resetear');
+            return;
+        }
+        
+        // 2. Obtener asignaciones activas (herramientas no devueltas)
+        const { data: asignacionesActivas, error: errorAsignaciones } = await supabase
+            .from('asignaciones')
+            .select('usuario_salon_id')
+            .eq('devuelta', false);
+        
+        if (errorAsignaciones) throw errorAsignaciones;
+        
+        // 3. Crear conjunto de IDs de usuarios con herramientas pendientes
+        const usuariosConHerramientas = new Set(
+            (asignacionesActivas || []).map(a => a.usuario_salon_id)
+        );
+        
+        // 4. Filtrar usuarios SIN herramientas pendientes
+        const usuariosAEliminar = todosUsuarios.filter(u => !usuariosConHerramientas.has(u.id));
+        
+        if (usuariosAEliminar.length === 0) {
+            console.log('✅ Todos los usuarios tienen herramientas pendientes, no se elimina ninguno');
+            showNotification('Reseteo 6pm: Todos los usuarios tienen herramientas pendientes', 'info');
+            return;
+        }
+        
+        console.log(`📋 Eliminando ${usuariosAEliminar.length} usuarios sin herramientas:`, 
+            usuariosAEliminar.map(u => u.nombre));
+        
+        // 5. Eliminar usuarios sin herramientas
+        const idsAEliminar = usuariosAEliminar.map(u => u.id);
+        
+        const { error: errorEliminacion } = await supabase
+            .from('usuarios_salon')
+            .delete()
+            .in('id', idsAEliminar);
+        
+        if (errorEliminacion) throw errorEliminacion;
+        
+        // 6. Mostrar notificación de éxito
+        console.log(`✅ Reseteo completado: ${usuariosAEliminar.length} usuarios eliminados`);
+        showNotification(
+            `Reseteo automático (7pm): ${usuariosAEliminar.length} usuario(s) sin herramientas eliminado(s)`,
+            'success'
+        );
+        
+        // 7. Recargar la vista si estamos en el salón
+        if (document.getElementById('salon').classList.contains('active')) {
+            await cargarUsuariosSalon();
+            deseleccionarUsuarioSalon();
+        }
+        
+    } catch (e) {
+        console.error('❌ Error en reseteo automático:', e);
+        showNotification('Error en reseteo automático: ' + e.message, 'error');
+    }
+}
+
+/**
+ * Función manual para probar el reseteo (solo para testing/debugging)
+ */
+async function reseteoManualPrueba() {
+    const confirmado = await showConfirm(
+        '¿Ejecutar reseteo manual? Eliminará usuarios sin herramientas pendientes.'
+    );
+    
+    if (!confirmado) return;
+    
+    await ejecutarReseteoUsuarios();
+}
+
+// ===== ELIMINACIÓN MASIVA DE USUARIOS =====
+
+/**
+ * Elimina solo usuarios del salón que NO tienen herramientas pendientes
+ */
+async function eliminarUsuariosSinHerramientas() {
+    try {
+        const confirmado = await showConfirm(
+            '¿Eliminar todos los usuarios SIN herramientas pendientes? Esta acción no se puede deshacer.'
+        );
+        
+        if (!confirmado) return;
+        
+        showLoading();
+        
+        // Reutilizar la lógica del reseteo automático
+        const { data: todosUsuarios, error: errorUsuarios } = await supabase
+            .from('usuarios_salon')
+            .select('id, nombre');
+        
+        if (errorUsuarios) throw errorUsuarios;
+        
+        if (!todosUsuarios || todosUsuarios.length === 0) {
+            showNotification('No hay usuarios en el salón', 'info');
+            hideLoading();
+            return;
+        }
+        
+        // Obtener asignaciones activas
+        const { data: asignacionesActivas, error: errorAsignaciones } = await supabase
+            .from('asignaciones')
+            .select('usuario_salon_id')
+            .eq('devuelta', false);
+        
+        if (errorAsignaciones) throw errorAsignaciones;
+        
+        // Crear conjunto de IDs de usuarios con herramientas pendientes
+        const usuariosConHerramientas = new Set(
+            (asignacionesActivas || []).map(a => a.usuario_salon_id)
+        );
+        
+        // Filtrar usuarios SIN herramientas pendientes
+        const usuariosAEliminar = todosUsuarios.filter(u => !usuariosConHerramientas.has(u.id));
+        
+        if (usuariosAEliminar.length === 0) {
+            showNotification('Todos los usuarios tienen herramientas pendientes', 'info');
+            hideLoading();
+            return;
+        }
+        
+        console.log(`🧼 Eliminando ${usuariosAEliminar.length} usuarios sin herramientas`);
+        
+        // Eliminar usuarios
+        const idsAEliminar = usuariosAEliminar.map(u => u.id);
+        
+        const { error: errorEliminacion } = await supabase
+            .from('usuarios_salon')
+            .delete()
+            .in('id', idsAEliminar);
+        
+        if (errorEliminacion) throw errorEliminacion;
+        
+        showNotification(
+            `✅ ${usuariosAEliminar.length} usuario(s) sin herramientas eliminado(s)`,
+            'success'
+        );
+        
+        // Recargar vista si estamos en salón
+        if (document.getElementById('salon').classList.contains('active')) {
+            await cargarUsuariosSalon();
+            deseleccionarUsuarioSalon();
+        }
+        
+    } catch (e) {
+        console.error('❌ Error eliminando usuarios sin herramientas:', e);
+        showNotification('Error: ' + e.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+/**
+ * Elimina TODOS los usuarios del salón y libera sus herramientas
+ */
+async function eliminarTodosUsuarios() {
+    try {
+        const confirmado = await showConfirm(
+            '⚠️ ATENCIÓN: ¿Eliminar TODOS los usuarios del salón? Las herramientas asignadas quedarán libres. Esta acción no se puede deshacer.'
+        );
+        
+        if (!confirmado) return;
+        
+        // Confirmación adicional por seguridad
+        const confirmarDoblemente = await showConfirm(
+            '⚠️ CONFIRMACIÓN FINAL: ¿Estás completamente seguro? Se eliminarán TODOS los usuarios.'
+        );
+        
+        if (!confirmarDoblemente) return;
+        
+        showLoading();
+        
+        console.log('⚠️ Iniciando eliminación masiva de TODOS los usuarios...');
+        
+        // 1. Obtener todos los usuarios
+        const { data: todosUsuarios, error: errorUsuarios } = await supabase
+            .from('usuarios_salon')
+            .select('id, nombre');
+        
+        if (errorUsuarios) throw errorUsuarios;
+        
+        if (!todosUsuarios || todosUsuarios.length === 0) {
+            showNotification('No hay usuarios para eliminar', 'info');
+            hideLoading();
+            return;
+        }
+        
+        // 2. Marcar todas las asignaciones activas como devueltas
+        const { error: errorAsignaciones } = await supabase
+            .from('asignaciones')
+            .update({ devuelta: true, fecha_devolucion: new Date() })
+            .eq('devuelta', false);
+        
+        if (errorAsignaciones) throw errorAsignaciones;
+        
+        // 3. Liberar TODAS las herramientas (marcarlas como no en uso)
+        const { error: errorHerramientas } = await supabase
+            .from('herramientas')
+            .update({ en_uso: false })
+            .eq('en_uso', true);
+        
+        if (errorHerramientas) throw errorHerramientas;
+        
+        // 4. Eliminar todos los usuarios
+        const { error: errorEliminacion } = await supabase
+            .from('usuarios_salon')
+            .delete()
+            .neq('id', ''); // Eliminar todos (condición siempre verdadera)
+        
+        if (errorEliminacion) throw errorEliminacion;
+        
+        console.log(`✅ ${todosUsuarios.length} usuarios eliminados y herramientas liberadas`);
+        
+        showNotification(
+            `✅ ${todosUsuarios.length} usuario(s) eliminado(s) y sus herramientas liberadas`,
+            'success'
+        );
+        
+        // 5. Recargar vistas
+        if (document.getElementById('salon').classList.contains('active')) {
+            await cargarUsuariosSalon();
+            await cargarHerramientas();
+            deseleccionarUsuarioSalon();
+        }
+        
+        await reconciliarEstadoHerramientas();
+        
+    } catch (e) {
+        console.error('❌ Error en eliminación masiva:', e);
+        showNotification('Error en eliminación masiva: ' + e.message, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
