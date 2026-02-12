@@ -1,5 +1,6 @@
+// Configuración de Supabase
+const SUPABASE_URL = 'wyornkwbqgboopjoevtu';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5b3Jua3dicWdib29wam9ldnR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MzI3NDUsImV4cCI6MjA4MDIwODc0NX0.xFg6gJbPsO9b-iHOn2dhxXnyTSJIDhVveoJRu2xpWI8';
 
-import { createClient } from '@supabase/supabase-js'
-const supabaseUrl = 'https://wyornkwbqgboopjoevtu.supabase.co'
-const supabaseKey = process.env.SUPABASE_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Inicializar Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
