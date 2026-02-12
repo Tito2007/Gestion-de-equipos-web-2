@@ -10,11 +10,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- SISTEMA DE NOTIFICACIONES PERSONALIZADAS ---
   function showNotification(title, message, type = 'info') {
-    // Crear elemento de notificación
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     
-    // Iconos según el tipo
     const icons = {
       success: '✓',
       error: '✕',
@@ -31,16 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
       <button class="notification-close">×</button>
     `;
     
-    // Agregar al body
     document.body.appendChild(notification);
     
-    // Botón de cerrar
     const closeBtn = notification.querySelector('.notification-close');
     closeBtn.addEventListener('click', function() {
       closeNotification(notification);
     });
     
-    // Auto cerrar después de 5 segundos
     setTimeout(function() {
       closeNotification(notification);
     }, 5000);
@@ -57,7 +52,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // --- FUNCIONALIDAD DE SUPABASE ---
 
-  // REGISTRO DE USUARIO
   var registroForm = document.querySelector('.registro-box');
   if (registroForm) {
     registroForm.addEventListener('submit', async function(e) {
@@ -68,21 +62,18 @@ document.addEventListener('DOMContentLoaded', function() {
       const password = document.getElementById('registro-password').value;
       const passwordConfirm = document.getElementById('registro-password-confirm').value;
 
-      // Validar que las contraseñas coincidan
       if (password !== passwordConfirm) {
         showNotification('Error', 'Las contraseñas no coinciden', 'error');
         return;
       }
 
-      // Validar longitud de contraseña
       if (password.length < 6) {
         showNotification('Error', 'La contraseña debe tener al menos 6 caracteres', 'error');
         return;
       }
 
       try {
-        // Registrar usuario en Supabase
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
           email: email,
           password: password,
           options: {
@@ -96,10 +87,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         showNotification('¡Registro exitoso!', 'Ya puedes iniciar sesión con tu cuenta', 'success');
         
-        // Limpiar formulario
         registroForm.reset();
         
-        // Volver al login
         setTimeout(function() {
           registroBox.classList.add('fade-out');
           setTimeout(function() {
@@ -120,7 +109,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // LOGIN DE USUARIO
   var loginForm = document.querySelector('.login-box');
   if (loginForm) {
     loginForm.addEventListener('submit', async function(e) {
@@ -130,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const password = document.getElementById('password').value;
 
       try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
           email: email,
           password: password
         });
@@ -139,7 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         showNotification('¡Bienvenido!', 'Has iniciado sesión correctamente', 'success');
         
-        // Redirigir a inicio.html
         setTimeout(function() {
           window.location.href = 'inicio.html';
         }, 1500);
@@ -147,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
       } catch (error) {
         console.error('Error en login:', error);
         
-        // Animación shake
         loginBox.classList.add('shake');
         setTimeout(function() {
           loginBox.classList.remove('shake');
@@ -162,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // RECUPERAR CONTRASEÑA
   var recuperarForm = document.querySelector('.recuperar-box');
   if (recuperarForm) {
     recuperarForm.addEventListener('submit', async function(e) {
@@ -171,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const email = document.getElementById('recuperar-email').value;
 
       try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin + '/reset-password.html'
         });
 
@@ -179,7 +164,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         showNotification('Correo enviado', 'Revisa tu bandeja de entrada para restablecer tu contraseña', 'success');
         
-        // Limpiar formulario
         recuperarForm.reset();
         
       } catch (error) {
@@ -189,9 +173,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // --- NAVEGACIÓN ENTRE FORMULARIOS ---
-
-  // Botón para ir a Recuperar contraseña
   if (recuperarBtn && loginBox && recuperarBox) {
     recuperarBtn.addEventListener('click', function(e) {
       e.preventDefault();
@@ -204,7 +185,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Botón para volver al Login desde Recuperar contraseña
   if (volverBtn && loginBox && recuperarBox) {
     volverBtn.addEventListener('click', function(e) {
       e.preventDefault();
@@ -218,7 +198,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Enlace para ir a Registro
   if (registroLink && loginBox && registroBox) {
     registroLink.addEventListener('click', function(e) {
       e.preventDefault();
@@ -231,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Botón para volver al Login desde Registro
   if (volverRegistroBtn && loginBox && registroBox) {
     volverRegistroBtn.addEventListener('click', function(e) {
       e.preventDefault();
@@ -245,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Limpiar clases de animación al terminar
   if (loginBox) {
     loginBox.addEventListener('animationend', function() {
       loginBox.classList.remove('fade-in');
